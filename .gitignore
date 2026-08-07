@@ -24,3 +24,5 @@ yarn-error.log*
 
 # Vercel
 .vercel
+.env.local.save
+.env.local.save

@@ -1,11 +1,9 @@
 import { getLatestSignals, getRecentTrades, getSignalHistory } from '../lib/supabase';
 import { SignalWaveform } from './signal-waveform';
 
-// ВАЖЛИВО: force-dynamic — дані сигналів/угод мають бути СВІЖИМИ на
-// кожен запит (оновлюються щодня через daily_pipeline_sol.sh), а не
-// статично закешованими на момент білда. Без цього Next.js спробує
-// пре-рендерити сторінку один раз під час build і показувати
-// застарілі дані всім відвідувачам.
+// force-dynamic: signal/trade data must be FRESH on every request
+// (updated daily via daily_pipeline_sol.sh), not statically cached
+// at build time.
 export const dynamic = 'force-dynamic';
 
 function SignalBadge({ signal }) {
@@ -14,8 +12,6 @@ function SignalBadge({ signal }) {
 }
 
 export default async function DashboardPage() {
-  // Server component — дані підтягуються на сервері при кожному
-  // запиті (немає client-side loading state для першого рендеру)
   const [signals, trades, waveformData] = await Promise.all([
     getLatestSignals(),
     getRecentTrades(10),
@@ -27,7 +23,7 @@ export default async function DashboardPage() {
   return (
     <main>
       <div className="panel">
-        <div className="panel-label">Сукупний портфель (усі sub-pools)</div>
+        <div className="panel-label">Total Portfolio (all sub-pools)</div>
         <div className="data-grid">
           <div className="data-cell">
             <div className="value neutral">${totalPortfolio.toFixed(2)}</div>
@@ -35,40 +31,40 @@ export default async function DashboardPage() {
           </div>
           <div className="data-cell">
             <div className="value">{signals.length}/6</div>
-            <div className="sublabel">Активних sub-pools</div>
+            <div className="sublabel">Active sub-pools</div>
           </div>
           <div className="data-cell">
             <div className="value">
               {signals.filter((s) => s.signal === 'BUY').length}
             </div>
-            <div className="sublabel">BUY сигналів зараз</div>
+            <div className="sublabel">BUY signals now</div>
           </div>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-label">Сигнал hodl / standard — target_position (60д)</div>
+        <div className="panel-label">Signal hodl / standard — target_position (60d)</div>
         <SignalWaveform data={waveformData} />
       </div>
 
       <div className="panel">
-        <div className="panel-label">Sub-pools — поточний стан</div>
+        <div className="panel-label">Sub-pools — current state</div>
         <table className="signal-table">
           <thead>
             <tr>
               <th>Strategy</th>
               <th>Sensitivity</th>
-              <th>Сигнал</th>
-              <th>Ціна</th>
+              <th>Signal</th>
+              <th>Price</th>
               <th>Portfolio</th>
-              <th>Оновлено</th>
+              <th>Updated</th>
             </tr>
           </thead>
           <tbody>
             {signals.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ color: 'var(--text-dim)' }}>
-                  Немає даних — перевірте підключення Supabase та чи запускався daily_pipeline_sol.sh
+                  No data — check Supabase connection and whether daily_pipeline_sol.sh has run
                 </td>
               </tr>
             )}
@@ -87,13 +83,13 @@ export default async function DashboardPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">Останні угоди</div>
+        <div className="panel-label">Recent Trades</div>
         <table className="signal-table">
           <thead>
             <tr>
-              <th>Дата</th>
+              <th>Date</th>
               <th>Sub-pool</th>
-              <th>Тип</th>
+              <th>Type</th>
               <th>SOL</th>
               <th>USDT</th>
               <th>Order ID</th>
@@ -103,7 +99,7 @@ export default async function DashboardPage() {
             {trades.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ color: 'var(--text-dim)' }}>
-                  Угод ще не було
+                  No trades yet
                 </td>
               </tr>
             )}

@@ -4,12 +4,12 @@ import { WalletConnectButton } from './wallet-connect-button';
 
 export const metadata = {
   title: 'CRAFT-SOL',
-  description: 'Автоматизована торгова система для SOL — GRU-модель, TWAP-виконання, Solana Devnet.',
+  description: 'Automated trading system for SOL — GRU model, TWAP execution, Solana Devnet.',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="uk">
+    <html lang="en">
       <body>
         <SolanaProviders>
           <div className="terminal-shell">
@@ -19,9 +19,9 @@ export default function RootLayout({ children }) {
                 CRAFT-SOL
               </div>
               <nav className="terminal-nav">
-                <a href="/">Дашборд</a>
-                <a href="/swap">Обмінник</a>
-                <a href="/fund">Фонд</a>
+                <a href="/">Dashboard</a>
+                <a href="/swap">Swap</a>
+                <a href="/fund">Fund</a>
               </nav>
               <WalletConnectButton />
             </header>
