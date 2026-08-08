@@ -17,6 +17,20 @@ export function DateAxisLabels({ data, dateKey = 'date', count = 5 }) {
   }
   const uniqueIndices = [...new Set(indices)];
 
+  // Show only UNIQUE dates (if several points share the same day,
+  // do not repeat the same label multiple times in a row)
+  const seenDates = new Set();
+  const labels = [];
+  for (const idx of uniqueIndices) {
+    const label = formatDateShort(data[idx][dateKey]);
+    if (!seenDates.has(label)) {
+      seenDates.add(label);
+      labels.push(label);
+    }
+  }
+
+  if (labels.length === 0) return null;
+
   return (
     <div style={{
         display: 'flex',
@@ -27,8 +41,8 @@ export function DateAxisLabels({ data, dateKey = 'date', count = 5 }) {
         marginTop: 4,
       }}
     >
-      {uniqueIndices.map((idx) => (
-        <span key={idx}>{formatDateShort(data[idx][dateKey])}</span>
+      {labels.map((label, i) => (
+        <span key={i}>{label}</span>
       ))}
     </div>
   );
