@@ -2,97 +2,104 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import {
-  getPoolPda,
-  fetchPoolState,
-  fetchUserPosition,
-  buildDepositInstruction,
-  buildWithdrawInstruction,
-  DEMO_POOL,
-} from '../../lib/craft-fund';
-import { Transaction } from '@solana/web3.js';
+  getSimplePoolPda,
+  fetchSimplePoolState,
+  fetchUserAssetBalance,
+  buildDepositSolSimpleInstruction,
+  buildDepositUsdcSimpleInstruction,
+  buildWithdrawSolSimpleInstruction,
+  buildWithdrawUsdcSimpleInstruction,
+  SIMPLE_POOL_CONFIG,
+} from '../../lib/simple-fund';
 
-function formatTokenAmount(raw, decimals = 6) {
-  if (raw === null || raw === undefined) return '—';
-  return (Number(raw) / 10 ** decimals).toLocaleString('uk-UA', {
-    maximumFractionDigits: decimals,
-  });
+function formatSol(lamports) {
+  if (lamports === null || lamports === undefined) return '—';
+  return (Number(lamports) / LAMPORTS_PER_SOL).toFixed(4);
 }
+
+function formatUsdc(raw, decimals = 6) {
+  if (raw === null || raw === undefined) return '—';
+  return (Number(raw) / 10 ** decimals).toFixed(2);
+}
+
+const INSTRUCTION_MAP = {
+  'deposit-SOL': buildDepositSolSimpleInstruction,
+  'deposit-USDC': buildDepositUsdcSimpleInstruction,
+  'withdraw-SOL': buildWithdrawSolSimpleInstruction,
+  'withdraw-USDC': buildWithdrawUsdcSimpleInstruction,
+};
 
 export default function FundPage() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, connected } = useWallet();
 
   const [poolState, setPoolState] = useState(null);
-  const [userPosition, setUserPosition] = useState(null);
-  const [depositAmount, setDepositAmount] = useState('');
-  const [withdrawShares, setWithdrawShares] = useState('');
+  const [userBalance, setUserBalance] = useState(null);
+
+  const [mode, setMode] = useState('deposit');
+  const [asset, setAsset] = useState('SOL');
+  const [amount, setAmount] = useState('');
+
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const fundPoolPda = getPoolPda(DEMO_POOL.strategyType, DEMO_POOL.sensitivity);
   const fetchingRef = useRef(false);
 
+  const simplePoolPda = getSimplePoolPda(SIMPLE_POOL_CONFIG.strategyType, SIMPLE_POOL_CONFIG.sensitivity);
+
   const refreshState = useCallback(async () => {
-    // Захист від подвійного виклику (React StrictMode у dev-режимі
-    // навмисно подвоює useEffect) — без цього кожне завантаження
-    // сторінки робить удвічі більше RPC-запитів, наближаючи rate limit.
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
-      const pool = await fetchPoolState(connection, fundPoolPda);
+      const pool = await fetchSimplePoolState(connection, simplePoolPda);
       setPoolState(pool);
 
       if (publicKey) {
-        const position = await fetchUserPosition(connection, fundPoolPda, publicKey);
-        setUserPosition(position);
+        const balance = await fetchUserAssetBalance(connection, simplePoolPda, publicKey);
+        setUserBalance(balance);
       } else {
-        setUserPosition(null);
+        setUserBalance(null);
       }
     } catch (err) {
-      console.error('Failed to fetch pool state:', err);
-      if (err.message?.includes('429')) {
-        setStatus({
-          type: 'error',
-          message:
-            'RPC rate limit reached. Public Devnet RPC has strict limits — ' +
-            'consider using a dedicated provider (e.g. Helius free tier).',
-        });
-      }
+      console.error('Failed to fetch state:', err);
     } finally {
       fetchingRef.current = false;
     }
-  }, [connection, fundPoolPda, publicKey]);
+  }, [connection, simplePoolPda, publicKey]);
 
   useEffect(() => {
     refreshState();
   }, [refreshState]);
 
-  async function handleDeposit() {
+  async function handleSubmit() {
     if (!publicKey) return;
-    const amount = parseFloat(depositAmount);
-    if (!amount || amount <= 0) {
-      setStatus({ type: 'error', message: 'Enter a valid deposit amount' });
+    const amountNum = parseFloat(amount);
+    if (!amountNum || amountNum <= 0) {
+      setStatus({ type: 'error', message: `Enter a valid ${asset} amount` });
       return;
     }
+
+    const amountRaw =
+      asset === 'SOL'
+        ? BigInt(Math.round(amountNum * LAMPORTS_PER_SOL))
+        : BigInt(Math.round(amountNum * 10 ** SIMPLE_POOL_CONFIG.decimals));
+
+    const buildInstructionFn = INSTRUCTION_MAP[`${mode}-${asset}`];
 
     setLoading(true);
     setStatus({ type: 'pending', message: 'Sending transaction...' });
 
     try {
-      const amountRaw = BigInt(Math.round(amount * 10 ** DEMO_POOL.decimals));
-      const instruction = await buildDepositInstruction(publicKey, amountRaw);
+      const instruction = await buildInstructionFn(publicKey, amountRaw);
       const transaction = new Transaction().add(instruction);
-
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction(signature, 'confirmed');
 
-      setStatus({
-        type: 'success',
-        message: `Deposit confirmed: ${signature.slice(0, 20)}...`,
-      });
-      setDepositAmount('');
+      const label = mode === 'deposit' ? `${asset} deposit confirmed` : `${asset} withdrawal confirmed`;
+      setStatus({ type: 'success', message: `${label}: ${signature.slice(0, 20)}...` });
+      setAmount('');
       await refreshState();
     } catch (err) {
       console.error(err);
@@ -102,45 +109,42 @@ export default function FundPage() {
     }
   }
 
-  async function handleWithdraw() {
-    if (!publicKey) return;
-    const sharesAmount = parseFloat(withdrawShares);
-    if (!sharesAmount || sharesAmount <= 0) {
-      setStatus({ type: 'error', message: 'Enter a valid number of shares' });
-      return;
-    }
+  const toggleButtonStyle = (active) => ({
+    flex: 1,
+    background: active ? 'var(--signal-amber)' : 'var(--bg-panel-raised)',
+    color: active ? 'var(--bg-void)' : 'var(--text-muted)',
+    border: '1px solid var(--hairline)',
+    borderRadius: 3,
+    padding: '8px 0',
+    fontWeight: 600,
+    fontFamily: 'var(--font-mono)',
+    fontSize: 13,
+    cursor: 'pointer',
+  });
 
-    setLoading(true);
-    setStatus({ type: 'pending', message: 'Sending transaction...' });
+  const inputStyle = {
+    flex: 1,
+    background: 'var(--bg-panel-raised)',
+    border: '1px solid var(--hairline)',
+    borderRadius: 3,
+    padding: '8px 12px',
+    color: 'var(--text-primary)',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+  };
 
-    try {
-      const sharesRaw = BigInt(Math.round(sharesAmount * 10 ** DEMO_POOL.decimals));
-      const instruction = await buildWithdrawInstruction(publicKey, sharesRaw);
-      const transaction = new Transaction().add(instruction);
-
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, 'confirmed');
-
-      setStatus({
-        type: 'success',
-        message: `Withdrawal confirmed: ${signature.slice(0, 20)}...`,
-      });
-      setWithdrawShares('');
-      await refreshState();
-    } catch (err) {
-      console.error(err);
-      setStatus({ type: 'error', message: `Error: ${err.message || err}` });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const submitColor = mode === 'deposit' ? 'var(--confirm-green)' : 'var(--danger-red)';
 
   return (
     <main>
       <div className="panel">
         <div className="panel-label">
-          Fund — swing / conservative (demo pool, test token on Devnet)
+          Fund — swing / conservative (individual balance accounting, no shares)
         </div>
+        <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 12 }}>
+          Each client has a directly tracked balance (SOL + USDC), not a proportional
+          share of a pooled fund.
+        </p>
 
         {!poolState ? (
           <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
@@ -149,115 +153,87 @@ export default function FundPage() {
         ) : (
           <div className="data-grid">
             <div className="data-cell">
-              <div className="value neutral">{formatTokenAmount(poolState.totalCapitalUsdc)}</div>
-              <div className="sublabel">Total capital (TVL)</div>
-            </div>
-            <div className="data-cell">
-              <div className="value">{formatTokenAmount(poolState.totalShares)}</div>
-              <div className="sublabel">Total shares</div>
-            </div>
-            <div className="data-cell">
-              <div className="value">{(poolState.feeBps / 100).toFixed(2)}%</div>
-              <div className="sublabel">Withdrawal fee</div>
+              <div className="value neutral">${formatUsdc(poolState.priceUsdcPerSol)}</div>
+              <div className="sublabel">SOL price (synced from Binance)</div>
             </div>
           </div>
         )}
       </div>
 
       <div className="panel">
-        <div className="panel-label">Your Position</div>
+        <div className="panel-label">Your Balance (direct, not shares)</div>
         {!connected ? (
           <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-            Connect your wallet (button above) to see your position and perform operations.
+            Connect your wallet (button above) to see your balance and perform operations.
           </p>
         ) : (
-          <div className="data-cell">
-            <div className="value neutral">{formatTokenAmount(userPosition?.shares ?? 0n)}</div>
-            <div className="sublabel">Your shares</div>
+          <div className="data-grid">
+            <div className="data-cell">
+              <div className="value neutral">{formatSol(userBalance?.solAmount)}</div>
+              <div className="sublabel">Your SOL</div>
+            </div>
+            <div className="data-cell">
+              <div className="value neutral">{formatUsdc(userBalance?.usdcAmount)}</div>
+              <div className="sublabel">Your USDC</div>
+            </div>
           </div>
         )}
       </div>
 
       {connected && (
-        <>
-          <div className="panel">
-            <div className="panel-label">Deposit</div>
-            <div style={{ display: 'flex', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-              <input
-                type="number"
-                placeholder="Amount (test USDC)"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  background: 'var(--bg-panel-raised)',
-                  border: '1px solid var(--hairline)',
-                  borderRadius: 3,
-                  padding: '8px 12px',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'inherit',
-                  fontSize: 'inherit',
-                }}
-              />
-              <button
-                onClick={handleDeposit}
-                disabled={loading}
-                style={{
-                  background: 'var(--confirm-green)',
-                  color: 'var(--bg-void)',
-                  border: 'none',
-                  borderRadius: 3,
-                  padding: '8px 20px',
-                  fontWeight: 600,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.6 : 1,
-                }}
-              >
+        <div className="panel">
+          <div className="panel-label">Deposit / Withdraw</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={toggleButtonStyle(mode === 'deposit')} onClick={() => setMode('deposit')} disabled={loading}>
                 Deposit
               </button>
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-label">Withdraw</div>
-            <div style={{ display: 'flex', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-              <input
-                type="number"
-                placeholder="Number of shares"
-                value={withdrawShares}
-                onChange={(e) => setWithdrawShares(e.target.value)}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  background: 'var(--bg-panel-raised)',
-                  border: '1px solid var(--hairline)',
-                  borderRadius: 3,
-                  padding: '8px 12px',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'inherit',
-                  fontSize: 'inherit',
-                }}
-              />
-              <button
-                onClick={handleWithdraw}
-                disabled={loading}
-                style={{
-                  background: 'var(--danger-red)',
-                  color: 'var(--bg-void)',
-                  border: 'none',
-                  borderRadius: 3,
-                  padding: '8px 20px',
-                  fontWeight: 600,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.6 : 1,
-                }}
-              >
+              <button style={toggleButtonStyle(mode === 'withdraw')} onClick={() => setMode('withdraw')} disabled={loading}>
                 Withdraw
               </button>
             </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={toggleButtonStyle(asset === 'SOL')} onClick={() => setAsset('SOL')} disabled={loading}>
+                SOL
+              </button>
+              <button style={toggleButtonStyle(asset === 'USDC')} onClick={() => setAsset('USDC')} disabled={loading}>
+                USDC
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+              <input
+                type="number"
+                placeholder={`Amount (${asset})`}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={loading}
+                style={inputStyle}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                style={{
+                  background: submitColor,
+                  color: 'var(--bg-void)',
+                  border: 'none',
+                  borderRadius: 3,
+                  padding: '8px 20px',
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 13,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {mode === 'deposit' ? 'Deposit' : 'Withdraw'} {asset}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       {status && (

@@ -1,9 +1,6 @@
-import { getLatestSignals, getRecentTrades, getSignalHistory } from '../lib/supabase';
-import { SignalWaveform } from './signal-waveform';
+import { getLatestSignals, getRecentTrades, getAllSubPoolsPortfolioHistory } from '../lib/supabase';
+import { NavHistoryChart } from './nav-history-chart';
 
-// force-dynamic: signal/trade data must be FRESH on every request
-// (updated daily via daily_pipeline_sol.sh), not statically cached
-// at build time.
 export const dynamic = 'force-dynamic';
 
 function SignalBadge({ signal }) {
@@ -12,10 +9,10 @@ function SignalBadge({ signal }) {
 }
 
 export default async function DashboardPage() {
-  const [signals, trades, waveformData] = await Promise.all([
+  const [signals, trades, navHistoryGrouped] = await Promise.all([
     getLatestSignals(),
     getRecentTrades(10),
-    getSignalHistory('hodl', 'standard', 60),
+    getAllSubPoolsPortfolioHistory(300),
   ]);
 
   const totalPortfolio = signals.reduce((sum, s) => sum + (s.portfolio ?? 0), 0);
@@ -43,8 +40,8 @@ export default async function DashboardPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">Signal hodl / standard — target_position (60d)</div>
-        <SignalWaveform data={waveformData} />
+        <div className="panel-label">Portfolio value over time — all sub-pools</div>
+        <NavHistoryChart groupedData={navHistoryGrouped} />
       </div>
 
       <div className="panel">

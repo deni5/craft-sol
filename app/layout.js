@@ -20,6 +20,7 @@ export default function RootLayout({ children }) {
               </div>
               <nav className="terminal-nav">
                 <a href="/">Dashboard</a>
+                <a href="/bot">Bot</a>
                 <a href="/swap">Swap</a>
                 <a href="/fund">Fund</a>
               </nav>
