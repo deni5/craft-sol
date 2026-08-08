@@ -4,7 +4,7 @@ import { WalletConnectButton } from './wallet-connect-button';
 
 export const metadata = {
   title: 'CRAFT-SOL',
-  description: 'Automated trading system for SOL — GRU model, TWAP execution, Solana Devnet.',
+  description: 'Automated trading system for SOL - GRU model, TWAP execution, Solana Devnet.',
 };
 
 export default function RootLayout({ children }) {
@@ -20,6 +20,7 @@ export default function RootLayout({ children }) {
               </div>
               <nav className="terminal-nav">
                 <a href="/">Dashboard</a>
+                <a href="/about">About</a>
                 <a href="/bot">Bot</a>
                 <a href="/swap">Swap</a>
                 <a href="/fund">Fund</a>
