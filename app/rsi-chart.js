@@ -1,3 +1,5 @@
+import { DateAxisLabels } from './date-axis-labels';
+
 export function RsiChart({ data, height = 140 }) {
   const validData = (data || []).filter((d) => d.rsi !== null && d.rsi !== undefined);
 
@@ -51,6 +53,7 @@ export function RsiChart({ data, height = 140 }) {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
+      <DateAxisLabels data={validData} />
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
         Latest RSI: <span style={{ color: '#ffb86b' }}>{lastRsi.toFixed(1)}</span>
         {' '}(overbought above 70, oversold below 30)

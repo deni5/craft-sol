@@ -135,8 +135,7 @@ export default function BotControlPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button
-              onClick={handleStartBot}
+            <button onClick={handleStartBot}
               disabled={loading}
               style={{
                 flex: 1,
@@ -154,8 +153,7 @@ export default function BotControlPage() {
             >
               Start Bot ({strategy}/{sensitivity})
             </button>
-            <a
-              href="/fund"
+            <a href="/fund"
               style={{
                 flex: 1,
                 background: 'var(--signal-amber)',
@@ -179,8 +177,7 @@ export default function BotControlPage() {
 
       {status && (
         <div className="panel">
-          <div
-            style={{
+          <div style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 13,
               color:
@@ -195,8 +192,7 @@ export default function BotControlPage() {
 
       <div className="panel">
         <div className="panel-label">Signal history - target_position ({strategy}/{sensitivity})</div>
-        <SimpleLineChart
-          data={signalHistory}
+        <SimpleLineChart data={signalHistory}
           valueKey="buy_prob"
           color="#ffb86b"
           formatValue={(v) => v?.toFixed(3)}
@@ -204,9 +200,8 @@ export default function BotControlPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">SOL price - {strategy}/{sensitivity}</div>
-        <SimpleLineChart
-          data={signalHistory}
+        <div className="panel-label">SOL/USDC price - {strategy}/{sensitivity}</div>
+        <SimpleLineChart data={signalHistory}
           valueKey="price"
           color="#6bcb77"
           formatValue={(v) => `$${v?.toFixed(2)}`}

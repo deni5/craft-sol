@@ -1,3 +1,5 @@
+import { DateAxisLabels } from './date-axis-labels';
+
 const POOL_COLORS = {
   swing_conservative: '#ffb86b',
   swing_standard: '#6bcb77',
@@ -33,8 +35,7 @@ export function NavHistoryChart({ groupedData, height = 220 }) {
 
   if (keys.length === 0) {
     return (
-      <div
-        style={{
+      <div style={{
           height,
           display: 'flex',
           alignItems: 'center',
@@ -64,14 +65,12 @@ export function NavHistoryChart({ groupedData, height = 220 }) {
 
   return (
     <div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
+      <svg viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         style={{ width: '100%', height, display: 'block' }}
       >
         {[0.25, 0.5, 0.75].map((frac) => (
-          <line
-            key={frac}
+          <line key={frac}
             x1="0"
             y1={height * frac}
             x2={width}
@@ -86,8 +85,7 @@ export function NavHistoryChart({ groupedData, height = 220 }) {
           const path = buildPath(groupedData[key], minVal, maxVal, width, height);
           if (!path) return null;
           return (
-            <polyline
-              key={key}
+            <polyline key={key}
               points={path}
               fill="none"
               stroke={POOL_COLORS[key] || '#8a8f98'}
@@ -100,11 +98,16 @@ export function NavHistoryChart({ groupedData, height = 220 }) {
         })}
       </svg>
 
+      <DateAxisLabels data={keys.reduce((longest, key) => {
+          const series = groupedData[key];
+          return series.length > longest.length ? series : longest;
+        }, [])}
+      />
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
         {keys.map((key) => (
           <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span
-              style={{
+            <span style={{
                 display: 'inline-block',
                 width: 10,
                 height: 2,

@@ -1,3 +1,5 @@
+import { DateAxisLabels } from './date-axis-labels';
+
 export function PriceWithSignalsChart({ data, height = 180 }) {
   const validData = (data || []).filter((d) => d.price !== null && d.price !== undefined);
 
@@ -62,6 +64,7 @@ export function PriceWithSignalsChart({ data, height = 180 }) {
           <circle key={i} cx={m.x} cy={m.y} r="1.5" fill={m.color} vectorEffect="non-scaling-stroke" />
         ))}
       </svg>
+      <DateAxisLabels data={validData} />
       <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#6bcb77' }} />

@@ -1,8 +1,9 @@
+import { DateAxisLabels } from './date-axis-labels';
+
 export function SimpleLineChart({ data, valueKey, color = '#ffb86b', height = 140, formatValue }) {
   if (!data || data.length < 2) {
     return (
-      <div
-        style={{
+      <div style={{
           height,
           display: 'flex',
           alignItems: 'center',
@@ -62,8 +63,7 @@ export function SimpleLineChart({ data, valueKey, color = '#ffb86b', height = 14
           <line key={frac} x1="0" y1={height * frac} x2={width} y2={height * frac} stroke="#262b36" strokeWidth="0.5" strokeDasharray="2,2" />
         ))}
         <polygon points={areaPoints} fill={`url(#${gradientId})`} />
-        <polyline
-          points={points}
+        <polyline points={points}
           fill="none"
           stroke={color}
           strokeWidth="1"
@@ -72,6 +72,7 @@ export function SimpleLineChart({ data, valueKey, color = '#ffb86b', height = 14
           vectorEffect="non-scaling-stroke"
         />
       </svg>
+      <DateAxisLabels data={data} />
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
         Latest: <span style={{ color }}>{formatValue ? formatValue(lastValue) : lastValue}</span>
       </div>

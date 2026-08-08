@@ -1,3 +1,5 @@
+import { DateAxisLabels } from './date-axis-labels';
+
 export function ProbabilityChart({ data, height = 160 }) {
   const validData = (data || []).filter(
     (d) => d.buy_prob !== null && d.hold_prob !== null && d.sell_prob !== null
@@ -47,6 +49,7 @@ export function ProbabilityChart({ data, height = 160 }) {
         <polyline points={sellLine} fill="none" stroke="#ff6b6b" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         <polyline points={buyLine} fill="none" stroke="#6bcb77" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       </svg>
+      <DateAxisLabels data={validData} />
       <div style={{ display: 'flex', gap: 16, marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
         <span style={{ color: '#6bcb77' }}>BUY {(last.buy_prob * 100).toFixed(1)}%</span>
         <span style={{ color: '#8a8f98' }}>HOLD {(last.hold_prob * 100).toFixed(1)}%</span>

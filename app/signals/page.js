@@ -78,7 +78,7 @@ export default function SignalsPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">SOL price with BUY / SELL markers ({strategy}/{sensitivity})</div>
+        <div className="panel-label">SOL/USDC price with BUY / SELL markers ({strategy}/{sensitivity})</div>
         <PriceWithSignalsChart data={history} />
       </div>
 
