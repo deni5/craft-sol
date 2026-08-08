@@ -22,6 +22,7 @@ export default function RootLayout({ children }) {
                 <a href="/">Dashboard</a>
                 <a href="/about">About</a>
                 <a href="/bot">Bot</a>
+                <a href="/signals">Signals</a>
                 <a href="/swap">Swap</a>
                 <a href="/fund">Fund</a>
               </nav>
