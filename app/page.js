@@ -1,11 +1,12 @@
 import { getLatestSignals, getRecentTrades, getAllSubPoolsPortfolioHistory } from '../lib/supabase';
 import { NavHistoryChart } from './nav-history-chart';
+import { PerformanceMetrics } from './performance-metrics';
 
 export const dynamic = 'force-dynamic';
 
 function SignalBadge({ signal }) {
   const cls = signal === 'BUY' ? 'buy' : signal === 'SELL' ? 'sell' : 'hold';
-  return <span className={`badge ${cls}`}>{signal}</span>;
+  return <span className={'badge ' + cls}>{signal}</span>;
 }
 
 export default async function DashboardPage() {
@@ -40,12 +41,17 @@ export default async function DashboardPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">Portfolio value over time — all sub-pools</div>
+        <div className="panel-label">Portfolio value over time - all sub-pools</div>
         <NavHistoryChart groupedData={navHistoryGrouped} />
       </div>
 
       <div className="panel">
-        <div className="panel-label">Sub-pools — current state</div>
+        <div className="panel-label">Performance metrics (computed from live portfolio history)</div>
+        <PerformanceMetrics groupedData={navHistoryGrouped} />
+      </div>
+
+      <div className="panel">
+        <div className="panel-label">Sub-pools - current state</div>
         <table className="signal-table">
           <thead>
             <tr>
@@ -61,17 +67,17 @@ export default async function DashboardPage() {
             {signals.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ color: 'var(--text-dim)' }}>
-                  No data — check Supabase connection and whether daily_pipeline_sol.sh has run
+                  No data - check Supabase connection and whether daily_pipeline_sol.sh has run
                 </td>
               </tr>
             )}
             {signals.map((s) => (
-              <tr key={`${s.strategy_type}-${s.sensitivity}`}>
+              <tr key={s.strategy_type + '-' + s.sensitivity}>
                 <td>{s.strategy_type}</td>
                 <td>{s.sensitivity}</td>
                 <td><SignalBadge signal={s.signal} /></td>
-                <td>${s.price?.toFixed(2) ?? '—'}</td>
-                <td>${s.portfolio?.toFixed(2) ?? '—'}</td>
+                <td>${s.price?.toFixed(2) ?? '-'}</td>
+                <td>${s.portfolio?.toFixed(2) ?? '-'}</td>
                 <td>{s.date}</td>
               </tr>
             ))}
@@ -105,9 +111,9 @@ export default async function DashboardPage() {
                 <td>{t.date}</td>
                 <td>{t.strategy_type}/{t.sensitivity}</td>
                 <td><SignalBadge signal={t.type} /></td>
-                <td>{t.sol_amount?.toFixed(4) ?? '—'}</td>
-                <td>${t.usdt_amount?.toFixed(2) ?? '—'}</td>
-                <td style={{ color: 'var(--text-dim)' }}>{t.order_id ?? '—'}</td>
+                <td>{t.sol_amount?.toFixed(4) ?? '-'}</td>
+                <td>${t.usdt_amount?.toFixed(2) ?? '-'}</td>
+                <td style={{ color: 'var(--text-dim)' }}>{t.order_id ?? '-'}</td>
               </tr>
             ))}
           </tbody>
