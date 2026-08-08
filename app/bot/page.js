@@ -102,7 +102,7 @@ export default function BotControlPage() {
       <div className="panel">
         <div className="panel-label">Bot Control</div>
         <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 16 }}>
-          Select a sub-pool (strategy × sensitivity), then request a real bot run. A local
+          Select a sub-pool (strategy x sensitivity), then request a real bot run. A local
           listener process (bot_run_listener.py) on the operator&apos;s machine must be running
           to actually execute it.
         </p>
@@ -152,9 +152,9 @@ export default function BotControlPage() {
                 opacity: loading ? 0.6 : 1,
               }}
             >
-              ▶ Start Bot ({strategy}/{sensitivity})
+              Start Bot ({strategy}/{sensitivity})
             </button>
-            
+            <a
               href="/fund"
               style={{
                 flex: 1,
@@ -171,7 +171,7 @@ export default function BotControlPage() {
                 display: 'block',
               }}
             >
-              💰 Top Up Balance
+              Top Up Balance
             </a>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function BotControlPage() {
       )}
 
       <div className="panel">
-        <div className="panel-label">Signal history — target_position ({strategy}/{sensitivity})</div>
+        <div className="panel-label">Signal history - target_position ({strategy}/{sensitivity})</div>
         <SimpleLineChart
           data={signalHistory}
           valueKey="buy_prob"
@@ -204,7 +204,7 @@ export default function BotControlPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-label">SOL price — {strategy}/{sensitivity}</div>
+        <div className="panel-label">SOL price - {strategy}/{sensitivity}</div>
         <SimpleLineChart
           data={signalHistory}
           valueKey="price"
@@ -237,7 +237,7 @@ export default function BotControlPage() {
                 <td>{new Date(r.requested_at).toLocaleString()}</td>
                 <td>{r.strategy_type}/{r.sensitivity}</td>
                 <td><StatusBadge status={r.status} /></td>
-                <td style={{ color: 'var(--text-dim)', fontSize: 11 }}>{r.error_message ?? '—'}</td>
+                <td style={{ color: 'var(--text-dim)', fontSize: 11 }}>{r.error_message ?? '-'}</td>
               </tr>
             ))}
           </tbody>
