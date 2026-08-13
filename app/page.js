@@ -8,6 +8,7 @@ import {
   getSimplePoolPda,
   fetchSimplePoolState,
   fetchUserAssetBalance,
+  fetchAllPoolsState,
   buildDepositSolSimpleInstruction,
   buildDepositUsdcSimpleInstruction,
   buildWithdrawSolSimpleInstruction,
@@ -18,12 +19,14 @@ import {
 } from '../lib/simple-fund';
 import {
   getLatestSignals,
+  getAllSubPoolsPortfolioHistory,
   getSignalHistory,
   getTradesForPool,
   requestBotRun,
   getRecentBotRunRequests,
 } from '../lib/supabase';
 import { SimpleLineChart } from './simple-line-chart';
+import { NavHistoryChart } from './nav-history-chart';
 
 const INSTRUCTION_MAP = {
   'deposit-SOL': buildDepositSolSimpleInstruction,
@@ -113,6 +116,8 @@ export default function HomePage() {
   const [sensitivity, setSensitivity] = useState(0);
 
   const [allSignals, setAllSignals] = useState([]);
+  const [allPools, setAllPools] = useState([]);
+  const [portfolioHistory, setPortfolioHistory] = useState({});
   const [poolState, setPoolState] = useState(null);
   const [userBalance, setUserBalance] = useState(null);
   const [signalHistory, setSignalHistory] = useState([]);
@@ -142,10 +147,21 @@ export default function HomePage() {
     try {
       const signals = await getLatestSignals();
       setAllSignals(signals);
+      const history = await getAllSubPoolsPortfolioHistory(300);
+      setPortfolioHistory(history);
     } catch (err) {
       console.error('Failed to fetch summary:', err);
     }
   }, []);
+
+  const refreshAllPools = useCallback(async () => {
+    try {
+      const pools = await fetchAllPoolsState(connection, publicKey);
+      setAllPools(pools);
+    } catch (err) {
+      console.error('Failed to fetch all pools state:', err);
+    }
+  }, [connection, publicKey]);
 
   const refreshSelectedPool = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -185,6 +201,10 @@ export default function HomePage() {
   useEffect(() => {
     refreshSummary();
   }, [refreshSummary]);
+
+  useEffect(() => {
+    refreshAllPools();
+  }, [refreshAllPools]);
 
   useEffect(() => {
     refreshSelectedPool();
@@ -246,6 +266,7 @@ export default function HomePage() {
       setAmount('');
       await refreshSelectedPool();
       await refreshSummary();
+      await refreshAllPools();
     } catch (err) {
       console.error(err);
       setStatus({ type: 'error', message: `Error: ${err.message || err}` });
@@ -298,6 +319,57 @@ export default function HomePage() {
             <div className="sublabel">BUY signals now</div>
           </div>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-label">Your bot-pools (max 6 - one per strategy x sensitivity)</div>
+        {!connected ? (
+          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+            Connect your wallet to see which of the 6 possible pools you have created.
+          </p>
+        ) : (
+          <table className="signal-table">
+            <thead>
+              <tr>
+                <th>Pool</th>
+                <th>Price</th>
+                <th>Your SOL</th>
+                <th>Your USDC</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allPools.map((p) => {
+                const created = p.solAmount > 0n || p.usdcAmount > 0n;
+                return (
+                  <tr key={`${p.strategyType}-${p.sensitivityType}`}
+                    style={{
+                      cursor: 'pointer',
+                      background: p.strategyType === strategyType && p.sensitivityType === sensitivity ? 'var(--bg-panel-raised)' : 'transparent',
+                    }}
+                    onClick={() => {
+                      setStrategyType(p.strategyType);
+                      setSensitivity(p.sensitivityType);
+                    }}
+                  >
+                    <td>{p.strategyName}/{p.sensitivityName}</td>
+                    <td>${p.priceUsdcPerSol ? formatUsdc(p.priceUsdcPerSol) : '-'}</td>
+                    <td>{formatSol(p.solAmount)}</td>
+                    <td>{formatUsdc(p.usdcAmount)}</td>
+                    <td style={{ color: created ? 'var(--confirm-green)' : 'var(--text-dim)' }}>
+                      {created ? 'created' : 'not created'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="panel">
+        <div className="panel-label">Profitability dynamics - all sub-pools (bot performance)</div>
+        <NavHistoryChart groupedData={portfolioHistory} />
       </div>
 
       <div className="panel">
