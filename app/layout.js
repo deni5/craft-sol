@@ -19,13 +19,10 @@ export default function RootLayout({ children }) {
                 CRAFT-SOL
               </div>
               <nav className="terminal-nav">
-                <a href="/">Dashboard</a>
-                <a href="/about">About</a>
-                <a href="/bot">Bot</a>
+                <a href="/">Home</a>
                 <a href="/signals">Signals</a>
-                <a href="/market">Market</a>
                 <a href="/swap">Swap</a>
-                <a href="/fund">Fund</a>
+                <a href="/about">About</a>
               </nav>
               <WalletConnectButton />
             </header>
