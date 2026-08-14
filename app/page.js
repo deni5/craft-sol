@@ -183,6 +183,9 @@ export default function HomePage() {
             sensitivityType={p.sensitivityType}
             strategyName={p.strategyName}
             sensitivityName={p.sensitivityName}
+            priceUsdcPerSol={p.priceUsdcPerSol}
+            solAmount={p.solAmount}
+            usdcAmount={p.usdcAmount}
             onPoolUpdated={refreshAllPools}
           />
         ))}

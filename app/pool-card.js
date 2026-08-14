@@ -5,9 +5,6 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import {
   getPoolConfig,
-  getSimplePoolPda,
-  fetchSimplePoolState,
-  fetchUserAssetBalance,
   buildDepositSolSimpleInstruction,
   buildDepositUsdcSimpleInstruction,
   buildWithdrawSolSimpleInstruction,
@@ -59,15 +56,29 @@ function computeMetrics(series) {
   return { totalReturnPct, maxDrawdownPct };
 }
 
-export function PoolCard({ strategyType, sensitivityType, strategyName, sensitivityName, onPoolUpdated }) {
+/* IMPORTANT: priceUsdcPerSol/solAmount/usdcAmount are RECEIVED as
+   props from the parent component (app/page.js), which has ALREADY
+   fetched this data via ONE fetchAllPoolsState call for all 6 pools
+   at once. Previously each card SEPARATELY repeated the same RPC
+   calls - with 4 cards this gave ~20 concurrent Devnet RPC calls
+   and caused mass 429 Too Many Requests errors. Now the card makes
+   NO own RPC call for price/balance - only Supabase queries
+   (signals/trades) which are not part of fetchAllPoolsState. */
+export function PoolCard({
+  strategyType,
+  sensitivityType,
+  strategyName,
+  sensitivityName,
+  priceUsdcPerSol,
+  solAmount,
+  usdcAmount,
+  onPoolUpdated,
+}) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
   const config = getPoolConfig(strategyType, sensitivityType);
-  const simplePoolPda = getSimplePoolPda(strategyType, sensitivityType);
 
-  const [poolState, setPoolState] = useState(null);
-  const [userBalance, setUserBalance] = useState(null);
   const [signalHistory, setSignalHistory] = useState([]);
   const [trades, setTrades] = useState([]);
 
@@ -80,33 +91,25 @@ export function PoolCard({ strategyType, sensitivityType, strategyName, sensitiv
   const [botLoading, setBotLoading] = useState(false);
   const fetchingRef = useRef(false);
 
-  const refreshData = useCallback(async () => {
+  const refreshOffChainData = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const pool = await fetchSimplePoolState(connection, simplePoolPda);
-      setPoolState(pool);
-
-      if (publicKey) {
-        const balance = await fetchUserAssetBalance(connection, simplePoolPda, publicKey);
-        setUserBalance(balance);
-      }
-
       const history = await getSignalHistory(strategyName, sensitivityName, 60);
       setSignalHistory(history);
 
       const tradeList = await getTradesForPool(strategyName, sensitivityName, 8);
       setTrades(tradeList);
     } catch (err) {
-      console.error(`Failed to fetch data for ${strategyName}/${sensitivityName}:`, err);
+      console.error(`Failed to fetch off-chain data for ${strategyName}/${sensitivityName}:`, err);
     } finally {
       fetchingRef.current = false;
     }
-  }, [connection, simplePoolPda, publicKey, strategyName, sensitivityName]);
+  }, [strategyName, sensitivityName]);
 
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    refreshOffChainData();
+  }, [refreshOffChainData]);
 
   const metrics = computeMetrics(signalHistory.map((s) => ({ value: s.price })));
 
@@ -150,8 +153,11 @@ export function PoolCard({ strategyType, sensitivityType, strategyName, sensitiv
       const label = mode === 'deposit' ? `${asset} top up confirmed` : `${asset} withdrawal confirmed`;
       setStatus({ type: 'success', message: `${label}: ${signature.slice(0, 20)}...` });
       setAmount('');
-      await refreshData();
-      if (onPoolUpdated) onPoolUpdated();
+      // IMPORTANT: do NOT make our own RPC call here - just notify
+      // the parent component, which will refresh fetchAllPoolsState
+      // in ONE call and pass the new priceUsdcPerSol/solAmount/
+      // usdcAmount back as updated props (React re-renders the card).
+      if (onPoolUpdated) await onPoolUpdated();
     } catch (err) {
       console.error(err);
       setStatus({ type: 'error', message: `Error: ${err.message || err}` });
@@ -194,15 +200,15 @@ export function PoolCard({ strategyType, sensitivityType, strategyName, sensitiv
 
       <div className="data-grid" style={{ marginBottom: 12 }}>
         <div className="data-cell">
-          <div className="value neutral">${poolState ? formatUsdc(poolState.priceUsdcPerSol) : '-'}</div>
+          <div className="value neutral">${formatUsdc(priceUsdcPerSol)}</div>
           <div className="sublabel">SOL/USDC price</div>
         </div>
         <div className="data-cell">
-          <div className="value neutral">{formatSol(userBalance?.solAmount)}</div>
+          <div className="value neutral">{formatSol(solAmount)}</div>
           <div className="sublabel">Your SOL balance</div>
         </div>
         <div className="data-cell">
-          <div className="value neutral">{formatUsdc(userBalance?.usdcAmount)}</div>
+          <div className="value neutral">{formatUsdc(usdcAmount)}</div>
           <div className="sublabel">Your USDC balance</div>
         </div>
       </div>
