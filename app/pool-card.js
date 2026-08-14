@@ -111,7 +111,18 @@ export function PoolCard({
     refreshOffChainData();
   }, [refreshOffChainData]);
 
-  const metrics = computeMetrics(signalHistory.map((s) => ({ value: s.price })));
+  // IMPORTANT: value of YOUR current balance (SOL+USDC) on each
+  // historical price day - NOT the SOL price itself (same for all
+  // pools). Different clients with different SOL/USDC amounts in
+  // different pools get DIFFERENT curves, since the formula uses
+  // THEIR specific balance.
+  const solAmountNum = Number(solAmount || 0n) / LAMPORTS_PER_SOL;
+  const usdcAmountNum = Number(usdcAmount || 0n) / 10 ** DECIMALS;
+  const balanceValueHistory = signalHistory.map((s) => ({
+    date: s.date,
+    value: solAmountNum * (s.price || 0) + usdcAmountNum,
+  }));
+  const balanceMetrics = computeMetrics(balanceValueHistory);
 
   async function handleStartBot() {
     setBotLoading(true);
@@ -215,9 +226,9 @@ export function PoolCard({
 
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase' }}>
-          Price dynamics (this bot-pool)
+          Your balance value in USD (this bot-pool)
         </div>
-        <SimpleLineChart data={signalHistory.map((s) => ({ date: s.date, value: s.price }))}
+        <SimpleLineChart data={balanceValueHistory}
           valueKey="value"
           color="#6bcb77"
           height={120}
@@ -225,16 +236,16 @@ export function PoolCard({
         />
       </div>
 
-      {metrics && (
+      {balanceMetrics && (
         <div className="data-grid" style={{ marginBottom: 12 }}>
           <div className="data-cell">
-            <div className="value" style={{ color: metrics.totalReturnPct >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
-              {metrics.totalReturnPct >= 0 ? '+' : ''}{metrics.totalReturnPct.toFixed(2)}%
+            <div className="value" style={{ color: balanceMetrics.totalReturnPct >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
+              {balanceMetrics.totalReturnPct >= 0 ? '+' : ''}{balanceMetrics.totalReturnPct.toFixed(2)}%
             </div>
-            <div className="sublabel">Price change (period)</div>
+            <div className="sublabel">Balance value change (period)</div>
           </div>
           <div className="data-cell">
-            <div className="value" style={{ color: 'var(--danger-red)' }}>{metrics.maxDrawdownPct.toFixed(2)}%</div>
+            <div className="value" style={{ color: 'var(--danger-red)' }}>{balanceMetrics.maxDrawdownPct.toFixed(2)}%</div>
             <div className="sublabel">Max drawdown</div>
           </div>
         </div>
