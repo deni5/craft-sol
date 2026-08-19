@@ -35,7 +35,7 @@ export default function SignalsPage() {
   }, [refreshHistory]);
 
   useEffect(() => {
-    getMarketHistory(2500)
+    getMarketHistory(90)
       .then(setMarketHistory)
       .catch((err) => console.error('Failed to fetch market history:', err));
   }, []);
