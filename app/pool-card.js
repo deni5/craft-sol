@@ -222,6 +222,12 @@ export function PoolCard({
           <div className="value neutral">{formatUsdc(usdcAmount)}</div>
           <div className="sublabel">Your USDC balance</div>
         </div>
+        <div className="data-cell">
+          <div className="value neutral">
+            ${((Number(solAmount || 0n) / LAMPORTS_PER_SOL) * (Number(priceUsdcPerSol || 0n) / 10 ** DECIMALS) + Number(usdcAmount || 0n) / 10 ** DECIMALS).toFixed(2)}
+          </div>
+          <div className="sublabel">Total value (USD)</div>
+        </div>
       </div>
 
       <div style={{ marginBottom: 12 }}>
