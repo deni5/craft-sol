@@ -158,38 +158,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {!connected && (
-        <div className="panel">
-          <div className="panel-label">Your bot-pools</div>
-          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-            Connect your wallet (button above) to create and manage bot-pools.
-          </p>
-        </div>
-      )}
-
-      {connected && createdPools.length === 0 && (
-        <div className="panel">
-          <div className="panel-label">Your bot-pools</div>
-          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-            You have not created any bot-pool yet. Use the form below to create your first one.
-          </p>
-        </div>
-      )}
-
-      {connected &&
-        createdPools.map((p) => (
-          <PoolCard key={`${p.strategyType}-${p.sensitivityType}`}
-            strategyType={p.strategyType}
-            sensitivityType={p.sensitivityType}
-            strategyName={p.strategyName}
-            sensitivityName={p.sensitivityName}
-            priceUsdcPerSol={p.priceUsdcPerSol}
-            solAmount={p.solAmount}
-            usdcAmount={p.usdcAmount}
-            onPoolUpdated={refreshAllPools}
-          />
-        ))}
-
       {connected && (
         <div className="panel">
           <div className="panel-label">Create a new bot-pool (max 6 total - one per strategy x sensitivity)</div>
@@ -266,6 +234,38 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {!connected && (
+        <div className="panel">
+          <div className="panel-label">Your bot-pools</div>
+          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+            Connect your wallet (button above) to create and manage bot-pools.
+          </p>
+        </div>
+      )}
+
+      {connected && createdPools.length === 0 && (
+        <div className="panel">
+          <div className="panel-label">Your bot-pools</div>
+          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+            You have not created any bot-pool yet. Use the form above to create your first one.
+          </p>
+        </div>
+      )}
+
+      {connected &&
+        createdPools.map((p) => (
+          <PoolCard key={`${p.strategyType}-${p.sensitivityType}`}
+            strategyType={p.strategyType}
+            sensitivityType={p.sensitivityType}
+            strategyName={p.strategyName}
+            sensitivityName={p.sensitivityName}
+            priceUsdcPerSol={p.priceUsdcPerSol}
+            solAmount={p.solAmount}
+            usdcAmount={p.usdcAmount}
+            onPoolUpdated={refreshAllPools}
+          />
+        ))}
     </main>
   );
 }
