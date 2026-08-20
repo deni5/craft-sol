@@ -5,6 +5,8 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import {
   getPoolConfig,
+  getSimplePoolPda,
+  fetchFirstDepositDate,
   buildDepositSolSimpleInstruction,
   buildDepositUsdcSimpleInstruction,
   buildWithdrawSolSimpleInstruction,
@@ -56,6 +58,21 @@ function computeMetrics(series) {
   return { totalReturnPct, maxDrawdownPct };
 }
 
+function computeDayOverDayChange(series) {
+  if (!series || series.length < 2) return null;
+  const uniqueDates = [...new Set(series.map((p) => p.date))].sort();
+  if (uniqueDates.length < 2) return null;
+
+  const lastDate = uniqueDates[uniqueDates.length - 1];
+  const prevDate = uniqueDates[uniqueDates.length - 2];
+
+  const lastEntry = [...series].reverse().find((p) => p.date === lastDate);
+  const prevEntry = [...series].reverse().find((p) => p.date === prevDate);
+
+  if (!lastEntry || !prevEntry || prevEntry.value <= 0) return null;
+  return ((lastEntry.value / prevEntry.value) - 1) * 100;
+}
+
 /* IMPORTANT: priceUsdcPerSol/solAmount/usdcAmount are RECEIVED as
    props from the parent component (app/page.js), which has ALREADY
    fetched this data via ONE fetchAllPoolsState call for all 6 pools
@@ -81,6 +98,7 @@ export function PoolCard({
 
   const [signalHistory, setSignalHistory] = useState([]);
   const [trades, setTrades] = useState([]);
+  const [firstDepositDate, setFirstDepositDate] = useState(null);
 
   const [mode, setMode] = useState('deposit');
   const [asset, setAsset] = useState('SOL');
@@ -111,6 +129,16 @@ export function PoolCard({
     refreshOffChainData();
   }, [refreshOffChainData]);
 
+  // Реальна on-chain дата ПЕРШОГО депозиту - потрібна лише ОДИН раз
+  // (не при кожному оновленні), тому окремий useEffect.
+  useEffect(() => {
+    if (!publicKey) return;
+    const simplePoolPda = getSimplePoolPda(strategyType, sensitivityType);
+    fetchFirstDepositDate(connection, simplePoolPda, publicKey)
+      .then(setFirstDepositDate)
+      .catch((err) => console.error('Failed to fetch first deposit date:', err));
+  }, [connection, publicKey, strategyType, sensitivityType]);
+
   // IMPORTANT: value of YOUR current balance (SOL+USDC) on each
   // historical price day - NOT the SOL price itself (same for all
   // pools). Different clients with different SOL/USDC amounts in
@@ -123,6 +151,15 @@ export function PoolCard({
     value: solAmountNum * (s.price || 0) + usdcAmountNum,
   }));
   const balanceMetrics = computeMetrics(balanceValueHistory);
+
+  // "З моменту депозиту" - фільтруємо історію до РЕАЛЬНОЇ дати
+  // депозиту (не всього доступного діапазону графіка сигналів).
+  const sinceDepositHistory = firstDepositDate
+    ? balanceValueHistory.filter((h) => h.date >= firstDepositDate)
+    : balanceValueHistory;
+  const sinceDepositMetrics = computeMetrics(sinceDepositHistory);
+
+  const dayChangePct = computeDayOverDayChange(balanceValueHistory);
 
   async function handleStartBot() {
     setBotLoading(true);
@@ -242,20 +279,24 @@ export function PoolCard({
         />
       </div>
 
-      {balanceMetrics && (
-        <div className="data-grid" style={{ marginBottom: 12 }}>
-          <div className="data-cell">
-            <div className="value" style={{ color: balanceMetrics.totalReturnPct >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
-              {balanceMetrics.totalReturnPct >= 0 ? '+' : ''}{balanceMetrics.totalReturnPct.toFixed(2)}%
-            </div>
-            <div className="sublabel">Balance value change (period)</div>
+      <div className="data-grid" style={{ marginBottom: 12 }}>
+        <div className="data-cell">
+          <div className="value" style={{ color: sinceDepositMetrics && sinceDepositMetrics.totalReturnPct >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
+            {sinceDepositMetrics ? `${sinceDepositMetrics.totalReturnPct >= 0 ? '+' : ''}${sinceDepositMetrics.totalReturnPct.toFixed(2)}%` : '-'}
           </div>
-          <div className="data-cell">
-            <div className="value" style={{ color: 'var(--danger-red)' }}>{balanceMetrics.maxDrawdownPct.toFixed(2)}%</div>
-            <div className="sublabel">Max drawdown</div>
-          </div>
+          <div className="sublabel">Since deposit{firstDepositDate ? ` (${firstDepositDate})` : ''}</div>
         </div>
-      )}
+        <div className="data-cell">
+          <div className="value" style={{ color: dayChangePct !== null && dayChangePct >= 0 ? 'var(--confirm-green)' : dayChangePct !== null ? 'var(--danger-red)' : 'var(--text-muted)' }}>
+            {dayChangePct !== null ? `${dayChangePct >= 0 ? '+' : ''}${dayChangePct.toFixed(2)}%` : '-'}
+          </div>
+          <div className="sublabel">vs yesterday</div>
+        </div>
+        <div className="data-cell">
+          <div className="value" style={{ color: 'var(--danger-red)' }}>{sinceDepositMetrics ? sinceDepositMetrics.maxDrawdownPct.toFixed(2) : '0.00'}%</div>
+          <div className="sublabel">Max drawdown</div>
+        </div>
+      </div>
 
       <div style={{ marginBottom: 12 }}>
         <button onClick={handleStartBot}
