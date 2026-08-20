@@ -40,9 +40,21 @@ export default function SignalsPage() {
       .catch((err) => console.error('Failed to fetch market history:', err));
   }, []);
 
-  const validPrices = marketHistory.filter((h) => h.price !== null && h.price !== undefined);
-  const validVix = marketHistory.filter((h) => h.vix !== null && h.vix !== undefined);
-  const validDxy = marketHistory.filter((h) => h.dxy !== null && h.dxy !== undefined);
+  // ВАЖЛИВО: обрізаємо загальну ринкову історію до ТОГО САМОГО
+  // діапазону дат, що й графіки обраного пулу вище - без цього
+  // Market overview показував би роки історії поруч із лише
+  // кількома тижнями реальних per-pool даних, що виглядало
+  // непорівнювано.
+  const signalDates = history.map((s) => s.date).filter(Boolean).sort();
+  const minSignalDate = signalDates.length > 0 ? signalDates[0] : null;
+
+  const alignedMarketHistory = minSignalDate
+    ? marketHistory.filter((h) => h.date >= minSignalDate)
+    : marketHistory;
+
+  const validPrices = alignedMarketHistory.filter((h) => h.price !== null && h.price !== undefined);
+  const validVix = alignedMarketHistory.filter((h) => h.vix !== null && h.vix !== undefined);
+  const validDxy = alignedMarketHistory.filter((h) => h.dxy !== null && h.dxy !== undefined);
 
   const toggleButtonStyle = (active) => ({
     flex: 1,
@@ -107,7 +119,7 @@ export default function SignalsPage() {
       <div className="panel">
         <div className="panel-label">Market overview - full history, independent of any sub-pool</div>
         <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 12 }}>
-          {marketHistory.length} days of data used as macro model inputs.
+          {alignedMarketHistory.length} days of data used as macro model inputs.
         </p>
       </div>
 
