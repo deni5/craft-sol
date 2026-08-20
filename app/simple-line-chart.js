@@ -50,28 +50,51 @@ export function SimpleLineChart({ data, valueKey, color = '#ffb86b', height = 14
 
   const lastValue = values[values.length - 1];
 
+  const realMax = Math.max(...values);
+  const realMin = Math.min(...values);
+
   return (
     <div>
-      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0.25, 0.5, 0.75].map((frac) => (
-          <line key={frac} x1="0" y1={height * frac} x2={width} y2={height * frac} stroke="#262b36" strokeWidth="0.5" strokeDasharray="2,2" />
-        ))}
-        <polygon points={areaPoints} fill={`url(#${gradientId})`} />
-        <polyline points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="1"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+      <div style={{ position: 'relative', height }}>
+        <div style={{
+            position: 'absolute', top: 2, right: 4, fontSize: 10,
+            fontFamily: 'var(--font-mono)', color: 'var(--text-dim)',
+            pointerEvents: 'none', background: 'var(--bg-panel, #12151c)',
+            padding: '0 4px',
+          }}
+        >
+          {formatValue ? formatValue(realMax) : realMax.toFixed(2)}
+        </div>
+        <div style={{
+            position: 'absolute', bottom: 2, right: 4, fontSize: 10,
+            fontFamily: 'var(--font-mono)', color: 'var(--text-dim)',
+            pointerEvents: 'none', background: 'var(--bg-panel, #12151c)',
+            padding: '0 4px',
+          }}
+        >
+          {formatValue ? formatValue(realMin) : realMin.toFixed(2)}
+        </div>
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0.25, 0.5, 0.75].map((frac) => (
+            <line key={frac} x1="0" y1={height * frac} x2={width} y2={height * frac} stroke="#262b36" strokeWidth="0.5" strokeDasharray="2,2" />
+          ))}
+          <polygon points={areaPoints} fill={`url(#${gradientId})`} />
+          <polyline points={points}
+            fill="none"
+            stroke={color}
+            strokeWidth="1"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
       <DateAxisLabels data={data} />
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
         Latest: <span style={{ color }}>{formatValue ? formatValue(lastValue) : lastValue}</span>
