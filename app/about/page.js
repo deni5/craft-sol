@@ -179,12 +179,23 @@ export default function AboutPage() {
           the first (lookback - 1) rows of each split. Measured impact on R-squared was small
           (about 0.0004) for this dataset, but the safeguard is kept as standard practice.
         </p>
-        <p>
+        <p style={{ marginBottom: 12 }}>
           A genuine data leakage bug was also found and fixed during this research: a forward-
           looking drawdown column was not being excluded from model inputs due to a column name
           mismatch (drawdown_fwd vs drawdown). Fixing it dropped hourly R-squared from 0.31 to
           0.28 -- a real but not catastrophic change, confirming most of the original signal was
           genuine rather than leaked.
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 4: the RSI safety filter should also scale with sensitivity.</p>
+        <p>
+          The RSI-based overbought filter (skip a BUY signal above a set RSI level) originally
+          only varied by strategy (60 for swing, 70 for hodl), completely ignoring sensitivity --
+          conservative and sensitive pools were blocked at the exact same RSI level. This was
+          corrected with a Fibonacci-scaled offset per sensitivity (conservative -8, standard 0,
+          sensitive +13), capped at a hard ceiling of 85 so even the most permissive pool still
+          respects genuinely extreme overbought conditions. The real-world effect: at moderate
+          overbought readings (roughly RSI 65-83), sensitive pools now act while conservative
+          pools continue to wait, matching each pool&apos;s intended risk posture.
         </p>
       </Section>
 
