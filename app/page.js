@@ -58,7 +58,15 @@ export default function HomePage() {
   const [createStatus, setCreateStatus] = useState(null);
   const [creating, setCreating] = useState(false);
 
-  const totalPortfolio = allSignals.reduce((sum, s) => sum + (s.portfolio ?? 0), 0);
+  // ВАЖЛИВО: сума ВАШИХ реальних балансів по всіх пулах (не
+  // абстрактний trade-track-record бота, який тепер живе окремо на
+  // /admin - client бачить лише свої реальні гроші тут).
+  const totalClientValue = allPools.reduce((sum, p) => {
+    const sol = Number(p.solAmount || 0n) / LAMPORTS_PER_SOL;
+    const usdc = Number(p.usdcAmount || 0n) / 10 ** DECIMALS;
+    const price = Number(p.priceUsdcPerSol || 0n) / 10 ** DECIMALS;
+    return sum + (sol * price + usdc);
+  }, 0);
   const buyCount = allSignals.filter((s) => s.signal === 'BUY').length;
 
   const refreshSummary = useCallback(async () => {
@@ -144,8 +152,8 @@ export default function HomePage() {
         <div className="panel-label">Overview - all sub-pools (bot performance)</div>
         <div className="data-grid">
           <div className="data-cell">
-            <div className="value neutral">${totalPortfolio.toFixed(2)}</div>
-            <div className="sublabel">Total USDC-equivalent (bot track record)</div>
+            <div className="value neutral">${totalClientValue.toFixed(2)}</div>
+            <div className="sublabel">Total value across your bot-pools</div>
           </div>
           <div className="data-cell">
             <div className="value">{allSignals.length}/6</div>
