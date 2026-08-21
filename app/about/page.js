@@ -187,7 +187,7 @@ export default function AboutPage() {
           genuine rather than leaked.
         </p>
         <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 4: the RSI safety filter should also scale with sensitivity.</p>
-        <p>
+        <p style={{ marginBottom: 12 }}>
           The RSI-based overbought filter (skip a BUY signal above a set RSI level) originally
           only varied by strategy (60 for swing, 70 for hodl), completely ignoring sensitivity --
           conservative and sensitive pools were blocked at the exact same RSI level. This was
@@ -196,6 +196,76 @@ export default function AboutPage() {
           respects genuinely extreme overbought conditions. The real-world effect: at moderate
           overbought readings (roughly RSI 65-83), sensitive pools now act while conservative
           pools continue to wait, matching each pool&apos;s intended risk posture.
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 5: does the GRU model actually beat simple, ML-free rules?</p>
+        <p>
+          The GRU regression model was compared against three ML-free baselines (buy-and-hold,
+          a 10/50-day SMA crossover, and a plain RSI-threshold rule) across the exact same four
+          walk-forward fold periods used to evaluate the model. Result: mixed, and genuinely
+          informative. In the two growth folds (2023-01 to 2024-10), the model posted the best
+          Sharpe ratio of all four approaches. In the decline and crash folds (2024-10 to
+          2026-08), simple baselines won on Sharpe every time, and a plain RSI-only rule lost
+          less capital than the model during the real crash fold (-41.8 percent vs the model&apos;s
+          -49.4 percent). Verdict: the model earns its complexity specifically in stable-to-bull
+          conditions, not universally -- a hybrid approach (model-driven allocation in calm
+          markets, a simpler rule-based defensive posture in high-volatility or declining
+          markets) is a concrete, testable next step, not yet implemented.
+        </p>
+      </Section>
+
+      <Section title="Baseline comparison results (per fold, honest numbers)">
+        <p style={{ marginBottom: 12 }}>
+          Sharpe ratio by strategy, computed on identical date ranges for a fair comparison:
+        </p>
+        <table className="signal-table">
+          <thead>
+            <tr>
+              <th>Fold</th>
+              <th>Period</th>
+              <th>Buy&amp;Hold</th>
+              <th>GRU model</th>
+              <th>SMA crossover</th>
+              <th>RSI-only</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1 (bull)</td>
+              <td>2023-01 to 2023-11</td>
+              <td>2.442</td>
+              <td style={{ color: 'var(--confirm-green)', fontWeight: 600 }}>2.481</td>
+              <td>1.965</td>
+              <td>1.627</td>
+            </tr>
+            <tr>
+              <td>2 (growth)</td>
+              <td>2023-11 to 2024-10</td>
+              <td>1.675</td>
+              <td style={{ color: 'var(--confirm-green)', fontWeight: 600 }}>1.942</td>
+              <td>1.285</td>
+              <td>1.636</td>
+            </tr>
+            <tr>
+              <td>3 (decline)</td>
+              <td>2024-10 to 2025-09</td>
+              <td>0.902</td>
+              <td>0.712</td>
+              <td style={{ color: 'var(--confirm-green)', fontWeight: 600 }}>1.124</td>
+              <td>0.916</td>
+            </tr>
+            <tr>
+              <td>4 (crash)</td>
+              <td>2025-09 to 2026-08</td>
+              <td>-1.492</td>
+              <td>-1.938</td>
+              <td>-1.617</td>
+              <td style={{ color: 'var(--confirm-green)', fontWeight: 600 }}>-1.057</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: 12 }}>
+          Green marks the best Sharpe ratio in each row. The pattern is consistent: the model
+          wins when the market is trending up, simple rules win when it is not.
         </p>
       </Section>
 
@@ -208,6 +278,11 @@ export default function AboutPage() {
           <div>- Scheduled weekly retraining instead of a static trained model</div>
           <div>- Automatic execution of the Binance liquidity buffer rebalance (currently a manual, read-only calculation)</div>
           <div>- Server-side wallet verification for the admin page (current check is client-side only)</div>
+          <div>- Hybrid model: GRU-driven allocation in trending markets, simple rule-based defense in high-volatility/declining markets (see Hypothesis 5)</div>
+          <div>- On-chain Solana exchange inflow/outflow as a model feature (a well-established crypto signal, not yet tested here)</div>
+          <div>- Solana DeFi TVL and staking ratio as additional macro-style features</div>
+          <div>- News sentiment feature (architecture exists, but no NewsAPI key is currently configured)</div>
+          <div>- Systematic hyperparameter search and model ensembling instead of a single trained network</div>
         </div>
       </Section>
 
