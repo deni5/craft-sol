@@ -1,6 +1,7 @@
 import './globals.css';
 import { SolanaProviders } from './providers';
 import { WalletConnectButton } from './wallet-connect-button';
+import { ThemeToggle } from './theme-toggle';
 
 export const metadata = {
   title: 'CRAFT-SOL',
@@ -10,6 +11,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var t = localStorage.getItem('craft-sol-theme');
+                document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body>
         <SolanaProviders>
           <div className="terminal-shell">
@@ -24,7 +37,10 @@ export default function RootLayout({ children }) {
                 <a href="/swap">Swap</a>
                 <a href="/about">About</a>
               </nav>
-              <WalletConnectButton />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <ThemeToggle />
+                <WalletConnectButton />
+              </div>
             </header>
             {children}
           </div>
