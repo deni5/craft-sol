@@ -151,6 +151,55 @@ export default function AboutPage() {
         </p>
       </Section>
 
+      <Section title="Model research: hypotheses tested">
+        <p style={{ marginBottom: 12 }}>
+          The production model is a GRU regression network predicting a 0-100 percent SOL
+          allocation from price, RSI, and macro features, with a daily lookback window and a
+          minimum delta threshold of 0.05 (below that, the model holds rather than trades).
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 1: hourly trading beats daily.</p>
+        <p style={{ marginBottom: 12 }}>
+          Tested with a 48-hour lookback and its own hourly labels. Result: hourly Sharpe ratio
+          reached only +0.091 at its best-calibrated delta threshold (0.70) after adding funding
+          rate as a feature, up from -0.030 uncalibrated. Two of three walk-forward folds stayed
+          negative. Verdict: hourly trading is research-only, not production-ready -- the daily
+          regime remains the live system.
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 2: funding rate improves signal quality.</p>
+        <p style={{ marginBottom: 12 }}>
+          Added Binance funding rate as a model feature for the hourly regime. Result: Sharpe
+          improved from +0.039 to +0.049 at the same threshold, and to +0.091 once the delta
+          threshold was also recalibrated for hourly noise. Verdict: real but modest
+          improvement.
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 3: purged splits matter for overlapping windows.</p>
+        <p style={{ marginBottom: 12 }}>
+          With a 48-hour lookback, adjacent training samples share 47 of 48 hours of history,
+          risking leakage across the train/validation boundary. A purge step was added to drop
+          the first (lookback - 1) rows of each split. Measured impact on R-squared was small
+          (about 0.0004) for this dataset, but the safeguard is kept as standard practice.
+        </p>
+        <p>
+          A genuine data leakage bug was also found and fixed during this research: a forward-
+          looking drawdown column was not being excluded from model inputs due to a column name
+          mismatch (drawdown_fwd vs drawdown). Fixing it dropped hourly R-squared from 0.31 to
+          0.28 -- a real but not catastrophic change, confirming most of the original signal was
+          genuine rather than leaked.
+        </p>
+      </Section>
+
+      <Section title="Future improvements under consideration">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>- Proportional trade sizing across multiple real clients sharing the same sub-pool (current logic is verified correct for a single client per pool)</div>
+          <div>- VIX/DXY macro features for the hourly regime (blocked on a rate-limited data source, daily regime already has them)</div>
+          <div>- Order book depth and on-chain Solana activity as additional model features</div>
+          <div>- Walk-forward validation of the hodl strategy specifically in the hourly regime</div>
+          <div>- Scheduled weekly retraining instead of a static trained model</div>
+          <div>- Automatic execution of the Binance liquidity buffer rebalance (currently a manual, read-only calculation)</div>
+          <div>- Server-side wallet verification for the admin page (current check is client-side only)</div>
+        </div>
+      </Section>
+
       <Section title="Important notes">
         <p style={{ marginBottom: 12, color: 'var(--signal-amber)' }}>
           This system currently runs entirely on Solana Devnet with test tokens. Nothing here
