@@ -55,7 +55,21 @@ export default function AboutPage() {
           Clients create their own bot-pool by picking a strategy (swing or hodl) and a
           sensitivity level (conservative, standard, sensitive) -- up to 6 combinations total --
           then deposit SOL or USDC directly into it. Each bot-pool is tracked individually per
-          client: not a proportional share of a shared fund, but your own balance.
+          client: not a proportional share of a shared fund, but your own on-chain balance.
+        </p>
+      </Section>
+
+      <Section title="How a trade actually reaches your balance">
+        <p style={{ marginBottom: 12 }}>
+          The model's decision (what percent of a position to hold) is executed on Binance
+          Testnet using the operator's account -- your deposited SOL/USDC stays safely in the
+          Solana smart contract the whole time, it is never sent to Binance directly.
+        </p>
+        <p>
+          The trade size itself is calculated from your actual current on-chain balance in that
+          specific bot-pool (not an abstract internal number), and the result is written back to
+          your balance right after the trade confirms. Only trades that completed this full
+          round-trip are shown in a bot-pool's Recent trades list.
         </p>
       </Section>
 
@@ -81,32 +95,32 @@ export default function AboutPage() {
           tokens for this demo can be requested from the operator.
         </Step>
         <Step number="3" title="Choose your bot-pool options">
-          On the Home page, check the boxes for strategy and sensitivity, pick which asset to
-          invest (SOL or USDC), enter an amount, and press Create Pool. This deposits your
-          funds and creates your personal position in that specific bot-pool.
+          At the top of the Home page, check the boxes for strategy and sensitivity, pick which
+          asset to invest (SOL or USDC), enter an amount, and press Create Pool. This deposits
+          your funds and creates your personal position in that specific bot-pool.
         </Step>
         <Step number="4" title="Manage each bot-pool separately">
-          Every bot-pool you create gets its own card: current balance, a chart of your balance
-          value in USD over time, profitability metrics, recent trades, and its own top up /
-          withdraw controls. You can create up to 6 bot-pools total, one per strategy x
-          sensitivity combination.
+          Every bot-pool you create gets its own card below: current balance, total value in
+          USD, a chart of your balance value over time, return since your actual deposit date,
+          day-over-day change, recent trades, and its own top up / withdraw controls. You can
+          create up to 6 bot-pools total, one per strategy x sensitivity combination.
         </Step>
       </Section>
 
       <Section title="How to use: monitoring and running the bot">
         <Step number="1" title="Check each bot-pool card">
-          Each card shows the model&apos;s recent signal history, your balance value dynamics,
-          and a Trigger bot run button specific to that pool.
+          Each card shows your balance value dynamics, since-deposit return, and a Trigger bot
+          run button specific to that pool.
         </Step>
-        <Step number="2" title="Trigger a run (operator dependent)">
-          The Trigger button writes a run request. It only executes if the operator&apos;s local
-          listener process (bot_run_listener.py) is currently running -- this is not a fully
-          automated public trading button.
+        <Step number="2" title="Trigger a run, or let it run automatically">
+          Pressing Trigger requests an immediate run for that pool. The system also runs all 6
+          bot-pools automatically once a day; both paths only execute while the operator&apos;s
+          local listener process is active -- this is not a fully autonomous public service yet.
         </Step>
         <Step number="3" title="Check Signals for more detail">
           The Signals page shows price with BUY/SELL markers, RSI, the full BUY/HOLD/SELL
-          probability distribution, and the general market history (SOL price, VIX, DXY)
-          independent of any single bot-pool.
+          probability distribution, and the general market history (SOL price, VIX, DXY) over
+          the same period, independent of any single bot-pool.
         </Step>
         <Step number="4" title="Withdraw anytime">
           On any bot-pool&apos;s card, switch to Withdraw mode, pick the asset, enter an amount
@@ -125,13 +139,15 @@ export default function AboutPage() {
           buy-and-hold during strong bull markets, but shows meaningfully smaller losses during
           market crashes. Risk-adjusted return (Sharpe ratio) is close to neutral overall --
           this system is best understood as a risk-reduction tool, not a guaranteed profit
-          generator.
+          generator. A sharp overbought RSI reading, for example, will correctly hold off on
+          buying even after a strong price rise, rather than chasing it.
         </p>
         <p>
-          Live trades shown on this site reflect real executions against Binance Testnet, but
-          span only a short period so far -- not enough history to draw statistically meaningful
-          conclusions about live performance on their own. The walk-forward backtest results
-          (covering years of historical data) remain the more reliable performance signal.
+          Live trades and balances shown on this site reflect real executions and real on-chain
+          updates, but span only a short period so far -- not enough history to draw
+          statistically meaningful conclusions about live performance on their own. The
+          walk-forward backtest results (covering years of historical data) remain the more
+          reliable performance signal.
         </p>
       </Section>
 
