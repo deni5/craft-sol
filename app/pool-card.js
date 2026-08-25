@@ -201,6 +201,18 @@ export function PoolCard({
       const label = mode === 'deposit' ? `${asset} top up confirmed` : `${asset} withdrawal confirmed`;
       setStatus({ type: 'success', message: `${label}: ${signature.slice(0, 20)}...` });
       setAmount('');
+
+      // ВАЖЛИВО: автоматично запитуємо запуск бота ПІСЛЯ кожного
+      // депозиту/виводу - саме тоді реальна пропорція клієнта може
+      // розійтись із ціллю моделі, і потрібна перевірка/корекція
+      // (rebalance_client_position), без очікування щоденного циклу
+      // чи ручного натискання окремої кнопки.
+      try {
+        await requestBotRun(strategyName, sensitivityName);
+      } catch (err) {
+        console.error('Failed to auto-request bot run after deposit:', err);
+      }
+
       // IMPORTANT: do NOT make our own RPC call here - just notify
       // the parent component, which will refresh fetchAllPoolsState
       // in ONE call and pass the new priceUsdcPerSol/solAmount/
