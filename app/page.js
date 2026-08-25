@@ -67,7 +67,13 @@ export default function HomePage() {
     const price = Number(p.priceUsdcPerSol || 0n) / 10 ** DECIMALS;
     return sum + (sol * price + usdc);
   }, 0);
-  const buyCount = allSignals.filter((s) => s.signal === 'BUY').length;
+  // ВАЖЛИВО: рахуємо ЛИШЕ 6 справжніх клієнтських sub-pools -
+  // "turbulent" це окремий, дослідницький execution_mode (тестується
+  // напряму через термінал), не реальний клієнтський пул з on-chain
+  // балансом, тож не повинен впливати на цей клієнтський індикатор.
+  const CLIENT_SENSITIVITIES = ['conservative', 'standard', 'sensitive'];
+  const clientSignals = allSignals.filter((s) => CLIENT_SENSITIVITIES.includes(s.sensitivity));
+  const buyCount = clientSignals.filter((s) => s.signal === 'BUY').length;
 
   const refreshSummary = useCallback(async () => {
     try {
@@ -156,7 +162,7 @@ export default function HomePage() {
             <div className="sublabel">Total value across your bot-pools</div>
           </div>
           <div className="data-cell">
-            <div className="value">{allSignals.length}/6</div>
+            <div className="value">{clientSignals.length}/6</div>
             <div className="sublabel">Active sub-pools</div>
           </div>
           <div className="data-cell">
