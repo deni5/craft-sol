@@ -278,12 +278,30 @@ export default function AboutPage() {
           <div>- Scheduled weekly retraining instead of a static trained model</div>
           <div>- Automatic execution of the Binance liquidity buffer rebalance (currently a manual, read-only calculation)</div>
           <div>- Server-side wallet verification for the admin page (current check is client-side only)</div>
-          <div>- Hybrid model: GRU-driven allocation in trending markets, simple rule-based defense in high-volatility/declining markets (see Hypothesis 5)</div>
           <div>- On-chain Solana exchange inflow/outflow as a model feature (a well-established crypto signal, not yet tested here)</div>
           <div>- Solana DeFi TVL and staking ratio as additional macro-style features</div>
           <div>- News sentiment feature (architecture exists, but no NewsAPI key is currently configured)</div>
           <div>- Systematic hyperparameter search and model ensembling instead of a single trained network</div>
+          <div>- Complete the time-weighted return calculation (event history reconstruction is done, chaining sub-period returns is next)</div>
+          <div>- Custom domain instead of a shared *.vercel.app subdomain, to avoid new-domain wallet reputation warnings</div>
         </div>
+      </Section>
+
+      <Section title="Rebalancing and execution modes (latest work)">
+        <p style={{ marginBottom: 12 }}>
+          Every bot run now also checks whether your ACTUAL on-chain position (not the bot's own
+          internal state) has drifted from the model's target -- for example after a large
+          deposit. If it has, a correction executes automatically at a pace matched to that
+          pool's sensitivity, even if the bot's own decision that run was HOLD.
+        </p>
+        <p style={{ marginBottom: 12, color: 'var(--signal-amber)' }}>
+          Known limitation: the "Since deposit" and "vs yesterday" percentages currently apply
+          your CURRENT balance retroactively across past prices. A new deposit therefore inflates
+          the displayed return, even though nothing was earned by trading. A proper time-weighted
+          return (which separates your own deposits from actual trading performance) is in
+          progress -- the underlying on-chain event history is now being read correctly, but the
+          calculation itself is not yet wired into the displayed metric.
+        </p>
       </Section>
 
       <Section title="Important notes">
