@@ -7,6 +7,7 @@ import {
   getPoolConfig,
   getSimplePoolPda,
   fetchFirstDepositDate,
+  fetchBalanceHistory,
   buildDepositSolSimpleInstruction,
   buildDepositUsdcSimpleInstruction,
   buildWithdrawSolSimpleInstruction,
@@ -36,6 +37,60 @@ function formatUsdc(raw) {
   if (raw === null || raw === undefined) return '-';
   return (Number(raw) / 10 ** DECIMALS).toFixed(4);
 }
+
+function findPriceForDate(signalHistory, targetDate) {
+  // Знаходить ціну НАЙБЛИЖЧОГО дня в signalHistory до targetDate
+  // (точної відповідності може не бути - вихідні, дні без сигналу).
+  if (!signalHistory || signalHistory.length === 0) return null;
+  let closest = signalHistory[0];
+  let minDiff = Math.abs(new Date(closest.date) - new Date(targetDate));
+  for (const s of signalHistory) {
+    const diff = Math.abs(new Date(s.date) - new Date(targetDate));
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = s;
+    }
+  }
+  return closest.price;
+}
+
+function computeRealPnl(balanceHistory, signalHistory, currentPrice) {
+  // Time-Weighted Return: для КОЖНОГО відрізка між подіями зміни
+  // балансу (депозит/вивід/ребаланс бота) рахує прибутковість ЛИШЕ
+  // від руху ціни, тримаючи баланс СТАЛИМ - сама подія зміни балансу
+  // НЕ зараховується як "прибуток", лише те, що сталося МІЖ подіями.
+  // Це коректно виключає вплив депозитів/виводів, залишаючи ЛИШЕ
+  // результат руху ціни та рішень бота.
+  if (!balanceHistory || balanceHistory.length === 0) return null;
+
+  const events = [...balanceHistory].sort((a, b) => a.timestamp - b.timestamp);
+  const checkpoints = events.map((ev) => ({
+    date: ev.date,
+    sol: Number(ev.solAmount) / LAMPORTS_PER_SOL,
+    usdc: Number(ev.usdcAmount) / 10 ** DECIMALS,
+    price: findPriceForDate(signalHistory, ev.date),
+  }));
+
+  const today = new Date().toISOString().split('T')[0];
+  const last = checkpoints[checkpoints.length - 1];
+  checkpoints.push({ date: today, sol: last.sol, usdc: last.usdc, price: currentPrice });
+
+  let cumulativeFactor = 1.0;
+  for (let i = 0; i < checkpoints.length - 1; i++) {
+    const cp = checkpoints[i];
+    const next = checkpoints[i + 1];
+    if (cp.price === null || next.price === null || cp.price <= 0) continue;
+
+    const valueStart = cp.sol * cp.price + cp.usdc;
+    const valueHeldAtNextPrice = cp.sol * next.price + cp.usdc;
+    if (valueStart > 0) {
+      cumulativeFactor *= valueHeldAtNextPrice / valueStart;
+    }
+  }
+
+  return (cumulativeFactor - 1) * 100;
+}
+
 
 function computeMetrics(series) {
   if (!series || series.length < 2) return null;
@@ -139,6 +194,15 @@ export function PoolCard({
       .catch((err) => console.error('Failed to fetch first deposit date:', err));
   }, [connection, publicKey, strategyType, sensitivityType]);
 
+  const [balanceHistory, setBalanceHistory] = useState([]);
+  useEffect(() => {
+    if (!publicKey) return;
+    const simplePoolPda = getSimplePoolPda(strategyType, sensitivityType);
+    fetchBalanceHistory(connection, simplePoolPda, publicKey)
+      .then(setBalanceHistory)
+      .catch((err) => console.error('Failed to fetch balance history:', err));
+  }, [connection, publicKey, strategyType, sensitivityType, onPoolUpdated]);
+
   // IMPORTANT: value of YOUR current balance (SOL+USDC) on each
   // historical price day - NOT the SOL price itself (same for all
   // pools). Different clients with different SOL/USDC amounts in
@@ -160,6 +224,8 @@ export function PoolCard({
   const sinceDepositMetrics = computeMetrics(sinceDepositHistory);
 
   const dayChangePct = computeDayOverDayChange(balanceValueHistory);
+
+  const realPnl = computeRealPnl(balanceHistory, signalHistory, Number(priceUsdcPerSol || 0n) / 10 ** DECIMALS);
 
   async function handleStartBot() {
     setBotLoading(true);
@@ -293,10 +359,10 @@ export function PoolCard({
 
       <div className="data-grid" style={{ marginBottom: 12 }}>
         <div className="data-cell">
-          <div className="value" style={{ color: sinceDepositMetrics && sinceDepositMetrics.totalReturnPct >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
-            {sinceDepositMetrics ? `${sinceDepositMetrics.totalReturnPct >= 0 ? '+' : ''}${sinceDepositMetrics.totalReturnPct.toFixed(2)}%` : '-'}
+          <div className="value" style={{ color: realPnl !== null && realPnl >= 0 ? 'var(--confirm-green)' : 'var(--danger-red)' }}>
+            {realPnl !== null ? `${realPnl >= 0 ? '+' : ''}${realPnl.toFixed(2)}%` : '-'}
           </div>
-          <div className="sublabel">Since deposit{firstDepositDate ? ` (${firstDepositDate})` : ''}</div>
+          <div className="sublabel">PnL (bot performance){firstDepositDate ? ` since ${firstDepositDate}` : ''}</div>
         </div>
         <div className="data-cell">
           <div className="value" style={{ color: dayChangePct !== null && dayChangePct >= 0 ? 'var(--confirm-green)' : dayChangePct !== null ? 'var(--danger-red)' : 'var(--text-muted)' }}>
