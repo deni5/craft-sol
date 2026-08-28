@@ -239,6 +239,24 @@ export default function AboutPage() {
           model feature would need several years of history, which this free data source does not
           provide.
         </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 8: does the hybrid (model + RSI-switch) approach actually beat the pure model in a real walk-forward backtest?</p>
+        <p>
+          Hypothesis 5 proposed switching to a plain RSI rule during declining markets instead of
+          always trusting the GRU model. This was implemented directly inside the walk-forward
+          backtest itself (not just the earlier standalone comparison) and re-run on the same four
+          folds. Result: the hybrid approach beat the pure regression model in three of four folds,
+          most notably in Fold 2 (+104.7 percent vs +53.9 percent) and, importantly, in Fold 3 --
+          the one period where the pure model had previously lost to simple baselines (+26.3
+          percent vs +22.5 percent). In Fold 4, the real multi-month crash, the hybrid version was
+          worse (-52.9 percent vs -40.7 percent). An attempted fix -- refusing to buy on low RSI if
+          price had already dropped more than 10 percent in the past week, to avoid "catching a
+          falling knife" -- made both Fold 2 and Fold 4 worse and was reverted. Verdict: the hybrid
+          approach is a genuine improvement in three of four tested regimes, but the underlying
+          50-day moving average regime detector appears to stay in "declining" mode for the entire
+          duration of a sustained, multi-month crash, offering no additional protection once
+          already inside one. Fixing that specific weakness is the clearest next step before
+          considering this hybrid mode for anything beyond research.
+        </p>
       </Section>
 
       <Section title="Baseline comparison results (per fold, honest numbers)">
