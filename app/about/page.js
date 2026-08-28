@@ -340,6 +340,25 @@ export default function AboutPage() {
           deposit. If it has, a correction executes automatically at a pace matched to that
           pool's sensitivity, even if the bot's own decision that run was HOLD.
         </p>
+        <p style={{ marginBottom: 12 }}>
+          The pace of that correction (how much of the gap gets closed in a single run) is set by
+          an execution-fraction matrix combining both strategy and sensitivity: swing/conservative
+          closes 100 percent of the gap immediately, while hodl/sensitive closes only 25 percent,
+          moving toward the target gradually across several runs instead of one large trade. This
+          is the real, working TWAP mechanism -- not simply an even split, but a deliberate,
+          per-pool pace calibrated to how decisive that pool is meant to be.
+        </p>
+        <p style={{ marginBottom: 12 }}>
+          Each run also detects the broader market regime (price above or below its 50-day moving
+          average) and can optionally switch to a pure RSI-based rule during declines instead of
+          trusting the model outright, since a real walk-forward backtest of this switch beat the
+          plain model in three of four tested periods (see Hypothesis 8). An experimental
+          "turbulent" execution mode also exists for research: it uses a much lower minimum-delta
+          threshold to trade far more often than any client-facing sensitivity level, and is
+          currently only runnable from the command line, not selectable on the website, since the
+          underlying smart contract does not accept a fourth on-chain sensitivity value without a
+          redeploy.
+        </p>
         <p style={{ marginBottom: 12, color: 'var(--signal-amber)' }}>
           Known limitation: the "Since deposit" and "vs yesterday" percentages currently apply
           your CURRENT balance retroactively across past prices. A new deposit therefore inflates
