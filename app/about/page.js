@@ -211,6 +211,34 @@ export default function AboutPage() {
           markets, a simpler rule-based defensive posture in high-volatility or declining
           markets) is a concrete, testable next step, not yet implemented.
         </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 6: does Telegram sentiment predict SOL price movement?</p>
+        <p>
+          Historical messages from six Telegram channels (the official Solana community and
+          announcements channels, three crypto news aggregators, and a whale-transfer alert
+          channel) were pulled for a 90-day pilot window and scored with a simple keyword-based
+          lexicon. Result: no meaningful correlation with same-day or next-day SOL returns
+          (all |r| below 0.16, several channels near zero). Two of the six channels could not be
+          resolved or returned no messages. Verdict: on this pilot sample, Telegram sentiment
+          does not show a usable signal -- not conclusive proof of no relationship (90 days and a
+          basic lexicon are real limitations), but not enough evidence to justify building a
+          real-time monitoring pipeline.
+        </p>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Hypothesis 7: does on-chain network activity predict SOL price movement?</p>
+        <p>
+          Daily Solana network statistics (transaction counts, DEX trader counts and volume,
+          priority fees) were pulled from Solscan&apos;s API for the maximum available window (365
+          days) and correlated with SOL returns. Result: a genuinely more promising starting
+          point than Telegram -- transaction count showed a moderate correlation with next-day
+          returns (r = 0.32), several other on-chain metrics landed in the 0.13-0.30 range. But
+          turning this into an actual trading rule (buy when RSI is low AND on-chain activity is
+          above its own recent average, tested with proper z-score normalization) did not improve
+          on a plain RSI-only strategy for any of the five metrics tested -- Sharpe was
+          consistently worse despite the underlying correlation being real. Verdict: on-chain
+          activity correlates with price at a descriptive level but has not yet translated into a
+          better simple trading rule on the one year of data available; testing it as an actual
+          model feature would need several years of history, which this free data source does not
+          provide.
+        </p>
       </Section>
 
       <Section title="Baseline comparison results (per fold, honest numbers)">
