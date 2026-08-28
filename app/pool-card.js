@@ -326,7 +326,9 @@ export function PoolCard({
 
       <div className="data-grid" style={{ marginBottom: 12 }}>
         <div className="data-cell">
-          <div className="value neutral">${formatUsdc(priceUsdcPerSol)}</div>
+          <div className="value" style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-muted)' }}>
+            ${formatUsdc(priceUsdcPerSol)}
+          </div>
           <div className="sublabel">SOL/USDC price</div>
         </div>
         <div className="data-cell">
