@@ -1,15 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { getLatestSignals, getRecentTrades } from '../../lib/supabase';
+import { fetchAllClientsAggregate, DECIMALS } from '../../lib/simple-fund';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const ADMIN_PUBKEY = 'xBJwibCHjcX7SjJ2RQ1yaaanDiXxzgEQDdzWK4HJGP9';
 
 export default function AdminPage() {
   const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
   const [signals, setSignals] = useState([]);
   const [trades, setTrades] = useState([]);
+  const [clientsAggregate, setClientsAggregate] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const isAdmin = connected && publicKey && publicKey.toString() === ADMIN_PUBKEY;
@@ -31,7 +35,10 @@ export default function AdminPage() {
     getRecentTrades(30)
       .then(setTrades)
       .catch((err) => console.error('Failed to fetch trades:', err));
-  }, [isAdmin]);
+    fetchAllClientsAggregate(connection)
+      .then(setClientsAggregate)
+      .catch((err) => console.error('Failed to fetch clients aggregate:', err));
+  }, [isAdmin, connection]);
 
   if (!connected) {
     return (
@@ -62,8 +69,34 @@ export default function AdminPage() {
   const totalTrackRecord = signals.reduce((sum, s) => sum + (s.portfolio ?? 0), 0);
   const buyCount = signals.filter((s) => s.signal === 'BUY').length;
 
+  const totalClientValueUsd = clientsAggregate
+    ? (Number(clientsAggregate.totalSol) / LAMPORTS_PER_SOL) * (signals[0]?.price ?? 0) + Number(clientsAggregate.totalUsdc) / 10 ** DECIMALS
+    : null;
+
   return (
     <main>
+      <div className="panel">
+        <div className="panel-label">Real client funds (all clients, all sub-pools, on-chain)</div>
+        {clientsAggregate ? (
+          <div className="data-grid">
+            <div className="data-cell">
+              <div className="value neutral">{clientsAggregate.uniqueClientCount}</div>
+              <div className="sublabel">Unique clients</div>
+            </div>
+            <div className="data-cell">
+              <div className="value">{clientsAggregate.totalPoolCount}</div>
+              <div className="sublabel">Total client positions (across 6 pools)</div>
+            </div>
+            <div className="data-cell">
+              <div className="value neutral">${totalClientValueUsd?.toFixed(2) ?? '-'}</div>
+              <div className="sublabel">Accumulated real client fund (USD)</div>
+            </div>
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Loading on-chain data...</p>
+        )}
+      </div>
+
       <div className="panel">
         <div className="panel-label">Platform overview (bot track record - all sub-pools)</div>
         <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 12 }}>
