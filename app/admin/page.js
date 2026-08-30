@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { getLatestSignals } from '../../lib/supabase';
+import { getLatestSignals, getRecentTrades } from '../../lib/supabase';
 
 const ADMIN_PUBKEY = 'xBJwibCHjcX7SjJ2RQ1yaaanDiXxzgEQDdzWK4HJGP9';
 
 export default function AdminPage() {
   const { publicKey, connected } = useWallet();
   const [signals, setSignals] = useState([]);
+  const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const isAdmin = connected && publicKey && publicKey.toString() === ADMIN_PUBKEY;
@@ -27,6 +28,9 @@ export default function AdminPage() {
         console.error('Failed to fetch signals:', err);
         setLoading(false);
       });
+    getRecentTrades(30)
+      .then(setTrades)
+      .catch((err) => console.error('Failed to fetch trades:', err));
   }, [isAdmin]);
 
   if (!connected) {
@@ -113,6 +117,39 @@ export default function AdminPage() {
                 <td>${s.price?.toFixed(2) ?? '-'}</td>
                 <td>${s.portfolio?.toFixed(2) ?? '-'}</td>
                 <td>{s.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="panel">
+        <div className="panel-label">Recent trades (all sub-pools, on-chain confirmed)</div>
+        <table className="signal-table">
+          <thead>
+            <tr>
+              <th>Strategy</th>
+              <th>Sensitivity</th>
+              <th>Date</th>
+              <th>Type</th>
+              <th>SOL</th>
+              <th>USDT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ color: 'var(--text-dim)' }}>No confirmed trades yet.</td>
+              </tr>
+            )}
+            {trades.map((t) => (
+              <tr key={t.id}>
+                <td>{t.strategy_type}</td>
+                <td>{t.sensitivity}</td>
+                <td>{t.date}</td>
+                <td>{t.type}</td>
+                <td>{t.sol_amount?.toFixed(4) ?? '-'}</td>
+                <td>${t.usdt_amount?.toFixed(2) ?? '-'}</td>
               </tr>
             ))}
           </tbody>
